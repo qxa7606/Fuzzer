@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +19,9 @@ public class Fuzzer {
 	public static void main(String[] args) throws Exception{
 		
 		//String[] extensions = {"php","html","jsp"};
-
-		
+		//URL test = new URL("http://stackoverflow.com/questions/11229986/get-string-character-by-index-java");
+		//ArrayList<String> data = UrlParse(test);
+		//System.out.print(data.toString());
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF); 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 
@@ -74,6 +76,58 @@ public class Fuzzer {
 		@SuppressWarnings("unchecked")
 		List<HtmlInput> lst = (List<HtmlInput>) page.getByXPath("//input");
 		return (ArrayList<HtmlInput>) lst;
+	}
+	
+	//used to cut a Url into pieces and return an Array of Strings
+	public static ArrayList<String> UrlParse(URL url){
+		String StrUrl = url.toString();
+		ArrayList<String> ParsedUrl = new ArrayList<String>();
+		int start = 0;
+		int LowestValue = 0;
+		boolean record = false;
+		for(int x = 0; x < StrUrl.length(); x++){
+			String CurrentData = "";
+			start : if(StrUrl.charAt(x) == '/' | (StrUrl.length() - 1) == x){
+				if((StrUrl.length() - 1) != x){
+					if(StrUrl.charAt(x + 1)== '/'){
+						break start;
+					}
+				}
+				if(record == false){
+					record = true;
+					start = x;
+				}
+				else{
+					for(int y = start + 1; y <= x; y++){
+						CurrentData = CurrentData + StrUrl.charAt(y);
+					}
+					ParsedUrl.add(LowestValue, CurrentData);
+					LowestValue++;
+					start = x;
+				}
+			}
+		}
+		return ParsedUrl;
+	}
+	
+	public String Extend(String Extender, String Extendee){
+		String NewWord = Extendee + Extender;
+		return NewWord;
+	}
+	
+	public URL RebuildUrl(ArrayList<String> ArrayStrURL){
+		URL site = null;
+		String url = "https://www.";
+		for(int x = 0; x < ArrayStrURL.size(); x++){
+			url = url + ArrayStrURL.get(x);
+		}
+		try {
+			site = new URL(url);
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return site;
 	}
 
 }
