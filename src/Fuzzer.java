@@ -19,9 +19,15 @@ public class Fuzzer {
 	public static void main(String[] args) throws Exception{
 		
 		//String[] extensions = {"php","html","jsp"};
-		//URL test = new URL("http://stackoverflow.com/questions/11229986/get-string-character-by-index-java");
+		//URL test = new URL("http://127.0.0.1/dvwa/vulnerabilities/fi/?page=include.php");
 		//ArrayList<String> data = UrlParse(test);
 		//System.out.print(data.toString());
+		//URL refined = RebuildUrl(data);
+		//System.out.print(refined.toString());
+		//String Alteration = urlSearchAlteration(data.get(0));
+		//String AlterationLegit = urlSearchAlteration(data.get(4));
+		//System.out.print(Alteration);
+		//System.out.print(AlterationLegit);
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF); 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 
@@ -115,7 +121,40 @@ public class Fuzzer {
 		return NewWord;
 	}
 	
-	public URL RebuildUrl(ArrayList<String> ArrayStrURL){
+	//Detects if a search based function is in the url
+	public static boolean urlSearchDetect(String urlSegment){
+		boolean start = false;
+		boolean end = false;
+		for(int x = 0; x < urlSegment.length(); x++){
+			if(urlSegment.charAt(x) == '?'){
+				start = true;
+			}
+			if(urlSegment.charAt(x) == '=' & start == true){
+				end = true;
+			}
+		}
+		return end;
+		
+	}
+	
+	//Grabs the search based function in the url so it can be used for Extend method
+	public static String urlSearchAlteration(String urlSegment){
+		String searchinfo = "";
+		boolean state = false;
+		if(urlSearchDetect(urlSegment) == true){
+			for(int x = 0; x < urlSegment.length(); x++){
+				if(state == false){
+					searchinfo = searchinfo + urlSegment.charAt(x);
+				}
+				if(urlSegment.charAt(x) == '='){
+					state = true;
+				}
+			}
+		}
+		return searchinfo;
+	}
+	
+	public static URL RebuildUrl(ArrayList<String> ArrayStrURL){
 		URL site = null;
 		String url = "https://www.";
 		for(int x = 0; x < ArrayStrURL.size(); x++){
