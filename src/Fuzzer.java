@@ -13,6 +13,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
+import java.net.HttpURLConnection;
 
 
 public class Fuzzer {
@@ -31,9 +32,12 @@ public class Fuzzer {
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF); 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 
-		HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
+		//HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
 		//HtmlPage pg = loginDvwa(new URL("http://www.google.com"));
-		System.out.println(pg.asText());
+		//System.out.println(pg.asText());
+                URL n = new URL("http://www.google.com");
+                System.out.println(Fuzzer.guessURL(n));
+                
 	}
 
 	// custom login to loginDvwa
@@ -168,5 +172,42 @@ public class Fuzzer {
 		}
 		return site;
 	}
-
+        
+        public static ArrayList<String> guessURL(URL url) throws FailingHttpStatusCodeException, IOException{
+            String new_url = "";
+            ArrayList goodURLs = new ArrayList();
+            String Url = url.toString();
+            ParsedFile f = new ParsedFile();
+            ArrayList<String> words = f.Parse();
+            
+            String extensions[] = {".jsp", ".php", ".html"};
+            
+            for(String word :words){
+                for(String e : extensions){
+                    new_url = Url;  //set url equal to passed in url
+                    new_url += "/"; // add / at the end of the url
+                    new_url += word;  //append the word from the file to url
+                    new_url += e; //add extension on the url
+                    
+                    
+                    URL test_url = new URL(new_url);
+                    
+                    try{
+                    HttpURLConnection conn = (HttpURLConnection) test_url.openConnection(); // open connection trying 
+                    int responseCode = conn.getResponseCode();
+                    if(responseCode != 404){
+                        goodURLs.add(new_url);
+                    }
+                }
+                //catch any exceptions
+                catch(Exception except){
+                        except.printStackTrace();
+                        }
+                }
+            }
+            
+            return goodURLs; //retun good urls
+        }
+            
 }
+
