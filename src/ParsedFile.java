@@ -17,28 +17,30 @@ import java.util.ArrayList;
 
 public class ParsedFile {
     
+    
+    //Parse function: parses a text file and returns an arraylist of those words.
     public ArrayList Parse(){
+        
         ArrayList words = new ArrayList();
         String fileToParse = "Words.txt";
         BufferedReader fileReader = null;
-        
+      
+        //Try statement in case file doesn't exist
         try{
             String line = "";
             fileReader = new BufferedReader(new FileReader(fileToParse));
+            
+            //Read each of the file and add it to the arraylist of words.
             while ((line = fileReader.readLine()) != null){
                 words.add(line);
             }
         }
+        
+        //catch the error in case the file wasn't found and show the stacktrace.
         catch(Exception e){
             e.printStackTrace();
             }
         return words;
-    }
-    
-    public static void main(String[] args){
-        ParsedFile f = new ParsedFile();
-        
-        System.out.println(f.Parse());
     }
     
 }
