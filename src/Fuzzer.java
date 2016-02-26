@@ -35,103 +35,92 @@ public class Fuzzer {
 		//System.out.print(AlterationLegit);
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF); 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
-                System.out.println("fuzz [discover | test] url OPTIONS");
-                
-		if (args.length == 1){
-                    String test = args[0];
-                    if(test.equals("discover")){
-                        System.out.println("Discovering...");
-                        WebClient wb = new WebClient();
-                        URL test_URL = new URL("https://www.google.com/");
-                        /*HtmlPage pg = loginDvwa(test_URL);
-                        ArrayList<HtmlInput> arr = getInputs(pg);
-                        for (HtmlInput in : arr){
-                        System.out.println(in.asText());
-                        }*/
-                        
-                        //Fuzzer for linkDiscovery
-                        ArrayList<URL> links = new ArrayList();
-                        links = Fuzzer.linkDiscovery(test_URL);
-                        System.out.println();
-                        System.out.println("Links on Page: ");
-                        for(URL l : links){
-                            System.out.println(l.toString());
-                        }
-                        
-                        //Guess Urls
-                        System.out.println();
-                        ArrayList<String> guessed = new ArrayList();
-                        guessed = Fuzzer.guessURL(test_URL);
-                        System.out.println("Guessed URLs");
-                        for(String g : guessed){
-                            System.out.println(g);
-                        }
-                        //System.out.println(guessed);
-                        
-                        //Get cookies
-                        System.out.println();
-                        System.out.println("Cookies are: ");
-                        Fuzzer.getCookies(test_URL);
-                        
-                        //Parse URL
-                        
-                        
-                         System.out.println();
-                         System.out.println();
-                        System.out.println("Done");
-                    }
-                    if(test.equals("OPTIONS")){
-                        System.out.println();
-                        
-                        System.out.println("These are your OPTIONS:");
-                        System.out.println(
-                            "COMMANDS:\n" +
-                            "  discover  Output a comprehensive, human-readable list of all discovered inputs to the system. Techniques include both crawling and guessing.\n" +
-                            "  test      Discover all inputs, then attempt a list of exploit vectors on those inputs. Report potential vulnerabilities.\n" +
-                            "\n" +
-                            "OPTIONS:\n" +
-                            "  --custom-auth=string     Signal that the fuzzer should use hard-coded authentication for a specific application (e.g. dvwa). Optional.\n" +
-                            "\n" +
-                            "  Discover options:\n" +
-                            "    --common-words=file    Newline-delimited file of common words to be used in page guessing and input guessing. Required.\n" +
-                            "\n" +
-                            "  Test options:\n" +
-                            "    --vectors=file         Newline-delimited file of common exploits to vulnerabilities. Required.\n" +
-                            "    --sensitive=file       Newline-delimited file data that should never be leaked. It's assumed that this data is in the application's database (e.g. test data), but is not reported in any response. Required.\n" +
-                            "    --random=[true|false]  When off, try each input to each page systematically.  When on, choose a random page, then a random input field and test all vectors. Default: false.\n" +
-                            "    --slow=500             Number of milliseconds considered when a response is considered \"slow\". Default is 500 milliseconds\n" +
-                            "\n");
-                                                }
-                    if(test.equals("test")){
-                        System.out.println("Not yet Implemented");
-                    }
-		}
 		
-                else if (args.length == 2){
-			
-		}
-		else{
-			System.out.println("Bad input");
-		}
-		//HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
-		//HtmlPage pg = loginDvwa(new URL("http://www.google.com"));
-		//System.out.println(pg.asText()); 
-                /*
-                    URL n = new URL("http://www.google.com");
-                    WebClient wb = new WebClient();
-                    HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
-                    ArrayList<HtmlInput> arr = getInputs(pg);
-                    for (HtmlInput in : arr){
-                            System.out.println(in.asText());
-                    } 
-               */
-                //System.out.println(Fuzzer.guessURL(n));
-		//getCookies(new URL(loginDvwa(new URL("http://127.0.0.1/dvwa/login.php")).getUrl().toString()));
-
+        if (args.length < 2 || args.length > 4){
+        	System.out.println("Bad command");
+        	return;
+        }
+        
+        if (args.length == 2 && args[0].equals("discover")){
+        	URL url = new URL(args[1]);
+        	//linkDiscovery(url);
+        	System.out.println();
+        	System.out.println();
+        	//guessURL(url);
+        	WebClient client = new WebClient();
+        	HtmlPage pg = client.getPage(url);
+        	getInputs(pg);
+        	System.out.println();
+        	System.out.println();
+        	getCookies(url);
+        }
+        else if (args.length == 3 && args[0].equals("discover") && args[2].contains("common")){
+        	URL url = new URL(args[1]);
+        	//linkDiscovery(url);
+        	System.out.println();
+        	System.out.println();
+        	guessURL(url, args[2].substring(args[2].lastIndexOf('=')+1, args[2].length()));
+        	System.out.println();
+        	System.out.println();
+        	WebClient client = new WebClient();
+        	HtmlPage pg = client.getPage(url);
+        	getInputs(pg);
+        	System.out.println();
+        	System.out.println();
+        	getCookies(url);
+        }
+        else if (args.length == 3 && args[0].equals("discover") && args[2].contains("custom")){
+        	URL url = new URL(args[1]);
+        	HtmlPage pg1 = loginDvwa(url);
+        	url = pg1.getUrl();
+        	//linkDiscovery(url);
+        	System.out.println();
+        	System.out.println();
+        	//***ParseURL goes below this line***//
+        	getInputs(pg1);
+        	System.out.println();
+        	System.out.println();
+        	getCookies(url);
+        }
+        else if (args.length == 4 && args[0].equals("discover")&& args[3].contains("common") && args[2].contains("custom")){
+        	URL url = new URL(args[1]);
+        	System.out.println("LOGIN PAGE INFORMATION");
+        	System.out.println();
+        	//linkDiscovery(url);
+        	System.out.println();
+        	System.out.println();
+        	guessURL(url, args[3].substring(args[3].lastIndexOf('=')+1, args[3].length()));
+        	System.out.println();        	
+        	System.out.println();
+        	
+        	
+        	WebClient client = new WebClient();
+        	HtmlPage pg = client.getPage(url);
+        	getInputs(pg);
+        	System.out.println();
+        	System.out.println();
+        	getCookies(url);
+        	System.out.println();
+        	System.out.println();
+        	System.out.println("DVWA MAIN PAGE INFORMATION");
+        	HtmlPage pg1 = loginDvwa(url);
+        	url = pg1.getUrl();
+        	//linkDiscovery(url);
+        	System.out.println();
+        	System.out.println();
+        	guessURL(url, args[3].substring(args[3].lastIndexOf('=')+1, args[3].length()));
+        	System.out.println();        	
+        	System.out.println();
+        	//***ParseURL goes below this line***//
+        	getInputs(pg1);
+        	System.out.println();
+        	System.out.println();
+        	getCookies(url);
+        }
 	}
 
 	// custom login to loginDvwa
-	public static HtmlPage loginDvwa(URL url) throws Exception{
+	public static final HtmlPage loginDvwa(URL url) throws Exception{
 		WebClient client = new WebClient();
         client.getCookieManager().setCookiesEnabled(true);
        	final HtmlPage page = client.getPage(url);
@@ -142,9 +131,17 @@ public class Fuzzer {
         final HtmlPasswordInput pwd =  form.getInputByName("password");  
         textField.setValueAttribute("admin");
         pwd.setValueAttribute("password");
-            
-        return (HtmlPage) form.getInputByName("Login").click();
-            
+        System.out.println("Logged in");
+        final HtmlPage pg = (HtmlPage) form.getInputByName("Login").click();
+        
+    	HtmlPage ppg = client.getPage(pg.getUrl());
+    	
+		List<HtmlAnchor> lst = ppg.getAnchors();
+		for (HtmlAnchor an : lst){
+			System.out.println(an.getHrefAttribute());
+		}
+    	
+        return pg;    
 	}
 	
 	
@@ -153,29 +150,34 @@ public class Fuzzer {
 	}
 	
 	// all urls you can reach from the initial page
-	public static ArrayList<URL> linkDiscovery(URL url) throws FailingHttpStatusCodeException, IOException{
+	public static void linkDiscoveryPage(HtmlPage page) throws FailingHttpStatusCodeException, IOException{
 		WebClient client = new WebClient();
-		HtmlPage page = client.getPage(url);
 		ArrayList<URL> urls = new ArrayList<URL>();
 		
 		List<HtmlAnchor> lst = page.getAnchors();
-		for (HtmlAnchor anc : lst){
-			String ss = anc.getHrefAttribute();
-			if (url.toString().charAt(url.toString().length()-1) != '/'){
-				urls.add(new URL(url + ss));
-			}
-			else {
-				urls.add(new URL(url + ss.substring(1, ss.length())));
-			}
+		if (lst.size() == 0){
+			System.out.println("No URLs discovered.");
+			return;
 		}
-		return urls;
+		System.out.println("URLs discovered: ");
+		for (HtmlAnchor anc : lst){
+	
+		}
+		//return urls;
 	}
 
 	// get all inputs from the page
-	public static ArrayList<HtmlInput> getInputs(HtmlPage page){
+	public static void getInputs(HtmlPage page){
 		@SuppressWarnings("unchecked")
 		List<HtmlInput> lst = (List<HtmlInput>) page.getByXPath("//input");
-		return (ArrayList<HtmlInput>) lst;
+		if (lst.size() == 0){
+			System.out.println("No Form inputs  discovered.");
+			return;
+		}
+		System.out.println("Form inputs discovered: ");
+		for (HtmlInput inp : lst){
+			System.out.println("\tInput Name: "+inp.getNameAttribute() + "\t Input Type: " + inp.getTypeAttribute());
+		}
 	}
 	
 	//used to cut a Url into pieces and return an Array of Strings
@@ -263,19 +265,19 @@ public class Fuzzer {
 		return site;
 	}
         
-        public static ArrayList<String> guessURL(URL url) throws FailingHttpStatusCodeException, IOException{
+        public static void guessURL(URL url, String st) throws FailingHttpStatusCodeException, IOException{
             String new_url = "";
-            ArrayList goodURLs = new ArrayList();
+            ArrayList<URL> goodURLs = new ArrayList<URL>();
             String Url = url.toString();
             ParsedFile f = new ParsedFile();
-            ArrayList<String> words = f.Parse();
+            ArrayList<String> words = f.Parse(st);
             
-            String extensions[] = {".jsp", ".php", ".html", "js"};
+            String extensions[] = {".jsp", ".php", ".html", "js", ""};
             
             for(String word :words){
                 for(String e : extensions){
                     new_url = Url;  //set url equal to passed in url
-                    //new_url += "/"; // add / at the end of the url
+                    new_url += "/"; // add / at the end of the url
                     new_url += word;  //append the word from the file to url
                     new_url += e; //add extension on the url
                     
@@ -286,7 +288,7 @@ public class Fuzzer {
                     HttpURLConnection conn = (HttpURLConnection) test_url.openConnection(); // open connection trying 
                     int responseCode = conn.getResponseCode();
                     if(responseCode != 404){
-                        goodURLs.add(new_url);
+                        goodURLs.add(new URL(new_url));
                     }
                 }
                 //catch any exceptions
@@ -296,7 +298,14 @@ public class Fuzzer {
                 }
             }
             
-            return goodURLs; //retun good urls
+            if (goodURLs.size() == 0){
+            	System.out.println("No pages guessed.");
+            	return;
+            }
+            System.out.println("Pages guessed");
+            for (URL ur : goodURLs){
+            	System.out.println(ur.toString());
+            }
         }
         
         public static void getCookies(URL url) throws FailingHttpStatusCodeException, IOException{
@@ -305,10 +314,14 @@ public class Fuzzer {
         	mg.setCookiesEnabled(true);
         	cl.getPage(url);
             Set<Cookie> arr = mg.getCookies();
-            for (Cookie c : arr){
-            	System.out.println(c.getName());
+            if (arr.size()==0){
+            	System.out.println("No Cookies doscovered");
+            	return;
             }
-        	
+            System.out.println("Cookies discovered: ");
+            for (Cookie c : arr){
+            	System.out.println("\tCookie Name: " + c.getName());
+            }
         }
 }
 
