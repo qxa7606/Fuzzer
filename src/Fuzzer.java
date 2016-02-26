@@ -36,6 +36,17 @@ public class Fuzzer {
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF); 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 
+		if (args.length < 2){
+			System.out.println("Bad input");
+			return;
+		}
+		
+		if (args.length == 2){
+			
+		}
+		else if (args.length == 3){
+			
+		}
 		//HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
 		//HtmlPage pg = loginDvwa(new URL("http://www.google.com"));
 		//System.out.println(pg.asText());
