@@ -35,28 +35,87 @@ public class Fuzzer {
 		//System.out.print(AlterationLegit);
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF); 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
-
-		if (args.length < 2){
-			System.out.println("Bad input");
-			return;
+                System.out.println("fuzz [discover | test] url OPTIONS");
+                
+		if (args.length == 1){
+                    String test = args[0];
+                    if(test.equals("discover")){
+                        System.out.println("Discovering...");
+                        WebClient wb = new WebClient();
+                        URL test_URL = new URL("https://www.google.com/");
+                        /*HtmlPage pg = loginDvwa(test_URL);
+                        ArrayList<HtmlInput> arr = getInputs(pg);
+                        for (HtmlInput in : arr){
+                        System.out.println(in.asText());
+                        }*/
+                        
+                        //Fuzzer for linkDiscovery
+                        ArrayList<URL> links = new ArrayList();
+                        links = Fuzzer.linkDiscovery(test_URL);
+                        System.out.println();
+                        System.out.println("Links on Page: ");
+                        System.out.println(links.toString());
+                        
+                        //Guess Urls
+                        System.out.println();
+                        ArrayList<String> guessed = new ArrayList();
+                        guessed = Fuzzer.guessURL(test_URL);
+                        System.out.println("Guessed URLs");
+                        System.out.println(guessed);
+                        
+                        //Get cookies
+                        System.out.println();
+                        System.out.println("Cookies are: ");
+                        Fuzzer.getCookies(test_URL);
+                        
+                        //Parse URL
+                        
+                         System.out.println();
+                         System.out.println();
+                        System.out.println("Done");
+                    }
+                    if(test.equals("OPTIONS")){
+                        System.out.println();
+                        
+                        System.out.println("These are your OPTIONS:");
+                        System.out.println(
+                            "COMMANDS:\n" +
+                            "  discover  Output a comprehensive, human-readable list of all discovered inputs to the system. Techniques include both crawling and guessing.\n" +
+                            "  test      Discover all inputs, then attempt a list of exploit vectors on those inputs. Report potential vulnerabilities.\n" +
+                            "\n" +
+                            "OPTIONS:\n" +
+                            "  --custom-auth=string     Signal that the fuzzer should use hard-coded authentication for a specific application (e.g. dvwa). Optional.\n" +
+                            "\n" +
+                            "  Discover options:\n" +
+                            "    --common-words=file    Newline-delimited file of common words to be used in page guessing and input guessing. Required.\n" +
+                            "\n" +
+                            "  Test options:\n" +
+                            "    --vectors=file         Newline-delimited file of common exploits to vulnerabilities. Required.\n" +
+                            "    --sensitive=file       Newline-delimited file data that should never be leaked. It's assumed that this data is in the application's database (e.g. test data), but is not reported in any response. Required.\n" +
+                            "    --random=[true|false]  When off, try each input to each page systematically.  When on, choose a random page, then a random input field and test all vectors. Default: false.\n" +
+                            "    --slow=500             Number of milliseconds considered when a response is considered \"slow\". Default is 500 milliseconds\n" +
+                            "\n");
+                                                }
 		}
 		
-		if (args.length == 2){
+                else if (args.length == 2){
 			
 		}
-		else if (args.length == 3){
-			
+		else{
+			System.out.println("Bad input");
 		}
 		//HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
 		//HtmlPage pg = loginDvwa(new URL("http://www.google.com"));
-		//System.out.println(pg.asText());
-                URL n = new URL("http://www.google.com");
-                WebClient wb = new WebClient();
-                HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
-                ArrayList<HtmlInput> arr = getInputs(pg);
-                for (HtmlInput in : arr){
-                	System.out.println(in.asText());
-                }
+		//System.out.println(pg.asText()); 
+                /*
+                    URL n = new URL("http://www.google.com");
+                    WebClient wb = new WebClient();
+                    HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
+                    ArrayList<HtmlInput> arr = getInputs(pg);
+                    for (HtmlInput in : arr){
+                            System.out.println(in.asText());
+                    } 
+               */
                 //System.out.println(Fuzzer.guessURL(n));
 		//getCookies(new URL(loginDvwa(new URL("http://127.0.0.1/dvwa/login.php")).getUrl().toString()));
 
@@ -207,7 +266,7 @@ public class Fuzzer {
             for(String word :words){
                 for(String e : extensions){
                     new_url = Url;  //set url equal to passed in url
-                    new_url += "/"; // add / at the end of the url
+                    //new_url += "/"; // add / at the end of the url
                     new_url += word;  //append the word from the file to url
                     new_url += e; //add extension on the url
                     
