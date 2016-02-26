@@ -42,13 +42,14 @@ public class Fuzzer {
                     if(test.equals("discover")){
                         System.out.println("Discovering...");
                         WebClient wb = new WebClient();
-                        URL test_URL = new URL("https://www.rit.edu/search/?q=hello");
-                        /*HtmlPage pg = loginDvwa(test_URL);
-                        ArrayList<HtmlInput> arr = getInputs(pg);
+                        URL test_URL = new URL("http://127.0.0.1/dvwa/");
+                        HtmlPage pg = loginDvwa(test_URL);
+                        System.out.println("Inputs on Page:");
+                        HtmlPage data = wb.getPage(test_URL);
+                        ArrayList<HtmlInput> arr = getInputs(data);
                         for (HtmlInput in : arr){
-                        System.out.println(in.asText());
-                        }*/
-                        
+                        System.out.println(in.getNameAttribute());
+                        }
                         //Fuzzer for linkDiscovery
                         ArrayList<URL> links = new ArrayList();
                         links = Fuzzer.linkDiscovery(test_URL);
