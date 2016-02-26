@@ -19,10 +19,10 @@ public class ParsedFile {
     
     
     //Parse function: parses a text file and returns an arraylist of those words.
-    public ArrayList Parse(){
+    public ArrayList Parse(String st){
         
         ArrayList words = new ArrayList();
-        String fileToParse = "Words.txt";
+        String fileToParse = st;
         BufferedReader fileReader = null;
       
         //Try statement in case file doesn't exist
