@@ -3,8 +3,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
+import com.gargoylesoftware.htmlunit.CookieManager;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
@@ -13,6 +15,8 @@ import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
+import com.gargoylesoftware.htmlunit.util.Cookie;
+
 import java.net.HttpURLConnection;
 
 
@@ -35,9 +39,10 @@ public class Fuzzer {
 		//HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
 		//HtmlPage pg = loginDvwa(new URL("http://www.google.com"));
 		//System.out.println(pg.asText());
-                URL n = new URL("http://www.google.com");
-                System.out.println(Fuzzer.guessURL(n));
-                
+                //URL n = new URL("http://www.google.com");
+                //System.out.println(Fuzzer.guessURL(n));
+		getCookies(new URL(loginDvwa(new URL("http://127.0.0.1/dvwa/login.php")).getUrl().toString()));
+
 	}
 
 	// custom login to loginDvwa
@@ -180,7 +185,7 @@ public class Fuzzer {
             ParsedFile f = new ParsedFile();
             ArrayList<String> words = f.Parse();
             
-            String extensions[] = {".jsp", ".php", ".html"};
+            String extensions[] = {".jsp", ".php", ".html", "js"};
             
             for(String word :words){
                 for(String e : extensions){
@@ -208,6 +213,17 @@ public class Fuzzer {
             
             return goodURLs; //retun good urls
         }
-            
+        
+        public static void getCookies(URL url) throws FailingHttpStatusCodeException, IOException{
+        	WebClient cl = new WebClient();
+        	CookieManager mg = cl.getCookieManager();
+        	mg.setCookiesEnabled(true);
+        	cl.getPage(url);
+            Set<Cookie> arr = mg.getCookies();
+            for (Cookie c : arr){
+            	System.out.println(c.getName());
+            }
+        	
+        }
 }
 
