@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.gargoylesoftware.htmlunit.CookieManager;
+
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
@@ -17,6 +17,10 @@ import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.CookieStore;
 import java.net.HttpURLConnection;
 
 
@@ -26,7 +30,7 @@ public class Fuzzer {
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF); 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 		HtmlPage mainpage = null;
-    	WebClient client = new WebClient();
+		CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
     	
         if (args.length < 2 || args.length > 4){
         	System.out.println("Bad command");
@@ -34,13 +38,9 @@ public class Fuzzer {
         }
         
         if (args.length == 2 && args[0].equals("discover")){
+        	WebClient client = new WebClient();
         	URL url = new URL(args[1]);
-        	if(url.toString() == "http://127.0.0.1/dvwa/login.php"){
-        		mainpage = loginDvwa(url);
-        	}
-        	else{
-        		mainpage = client.getPage(url);
-        	}
+        	mainpage = client.getPage(url);
         	linkDiscoveryPage(mainpage);
         	System.out.println();
         	System.out.println();
@@ -53,6 +53,8 @@ public class Fuzzer {
         }
         else if (args.length == 3 && args[0].equals("discover") && args[2].contains("common")){
         	URL url = new URL(args[1]);
+        	WebClient client = new WebClient();
+        	mainpage = client.getPage(url);
         	linkDiscoveryPage(mainpage);
         	System.out.println();
         	System.out.println();
@@ -67,57 +69,55 @@ public class Fuzzer {
         }
         else if (args.length == 3 && args[0].equals("discover") && args[2].contains("custom")){
         	URL url = new URL(args[1]);
-        	HtmlPage pg1 = loginDvwa(url);
-        	url = pg1.getUrl();
+        	mainpage = loginDvwa(url);
         	linkDiscoveryPage(mainpage);
         	System.out.println();
         	System.out.println();
         	//***ParseURL goes below this line***//
-        	getInputs(pg1);
+        	getInputs(mainpage);
         	System.out.println();
         	System.out.println();
-        	getCookies(url);
+        	getCookies(mainpage.getUrl());
         }
         else if (args.length == 4 && args[0].equals("discover")&& args[3].contains("common") && args[2].contains("custom")){
         	URL url = new URL(args[1]);
+        	url.openConnection();
+        	WebClient client = new WebClient();
+        	HtmlPage data = client.getPage(url);
+        	mainpage = loginDvwa(url);
         	System.out.println("LOGIN PAGE INFORMATION");
         	System.out.println();
-        	linkDiscoveryPage(mainpage);
+        	linkDiscoveryPage(data);
         	System.out.println();
         	System.out.println();
-        	guessURL(url, args[3].substring(args[3].lastIndexOf('=')+1, args[3].length()));
+        	guessURL(data.getUrl(), args[3].substring(args[3].lastIndexOf('=')+1, args[3].length()));
         	System.out.println();        	
         	System.out.println();
-        	
-        	
-        	HtmlPage pg = client.getPage(url);
-        	getInputs(pg);
+        
+        	getInputs(data);
         	System.out.println();
         	System.out.println();
-        	getCookies(url);
+        	getCookies(data.getUrl());
         	System.out.println();
         	System.out.println();
         	System.out.println("DVWA MAIN PAGE INFORMATION");
-        	HtmlPage pg1 = loginDvwa(url);
-        	url = pg1.getUrl();
-        	linkDiscoveryPage(mainpage);
         	System.out.println();
+        	linkDiscoveryPage(mainpage);
         	System.out.println();
         	guessURL(url, args[3].substring(args[3].lastIndexOf('=')+1, args[3].length()));
         	System.out.println();        	
         	System.out.println();
         	//***ParseURL goes below this line***//
-        	getInputs(pg1);
+        	getInputs(mainpage);
         	System.out.println();
         	System.out.println();
-        	getCookies(url);
+        	getCookies(mainpage.getUrl());
         }
 	}
 
 	// custom login to loginDvwa
 	public static final HtmlPage loginDvwa(URL url) throws Exception{
 		WebClient client = new WebClient();
-        client.getCookieManager().setCookiesEnabled(true);
        	final HtmlPage page = client.getPage(url);
        	@SuppressWarnings("unchecked")
 		final ArrayList<HtmlForm> forms = (ArrayList<HtmlForm>) page.getByXPath("//form");
@@ -133,9 +133,8 @@ public class Fuzzer {
     	
 		List<HtmlAnchor> lst = ppg.getAnchors();
 		for (HtmlAnchor an : lst){
-			System.out.println(an.getHrefAttribute());
+			//System.out.println(an.getHrefAttribute());
 		}
-    	
         return pg;    
 	}
 	
@@ -163,6 +162,9 @@ public class Fuzzer {
 			else {
 				urls.add(new URL(page.getUrl() + ss.substring(1, ss.length())));
 			}
+		}
+		for(int x = 0; x < urls.size(); x++){
+			System.out.print(urls.get(x).toString() + '\n');
 		}
 	}
 
@@ -287,6 +289,7 @@ public class Fuzzer {
                     
                     try{
                     HttpURLConnection conn = (HttpURLConnection) test_url.openConnection(); // open connection trying 
+                    
                     int responseCode = conn.getResponseCode();
                     if(responseCode != 404){
                         goodURLs.add(new URL(new_url));
@@ -311,7 +314,7 @@ public class Fuzzer {
         
         public static void getCookies(URL url) throws FailingHttpStatusCodeException, IOException{
         	WebClient cl = new WebClient();
-        	CookieManager mg = cl.getCookieManager();
+        	com.gargoylesoftware.htmlunit.CookieManager mg = cl.getCookieManager();
         	mg.setCookiesEnabled(true);
         	cl.getPage(url);
             Set<Cookie> arr = mg.getCookies();
