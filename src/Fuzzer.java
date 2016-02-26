@@ -39,9 +39,15 @@ public class Fuzzer {
 		//HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
 		//HtmlPage pg = loginDvwa(new URL("http://www.google.com"));
 		//System.out.println(pg.asText());
-                //URL n = new URL("http://www.google.com");
+                URL n = new URL("http://www.google.com");
+                WebClient wb = new WebClient();
+                HtmlPage pg = loginDvwa(new URL("http://127.0.0.1/dvwa/login.php"));
+                ArrayList<HtmlInput> arr = getInputs(pg);
+                for (HtmlInput in : arr){
+                	System.out.println(in.asText());
+                }
                 //System.out.println(Fuzzer.guessURL(n));
-		getCookies(new URL(loginDvwa(new URL("http://127.0.0.1/dvwa/login.php")).getUrl().toString()));
+		//getCookies(new URL(loginDvwa(new URL("http://127.0.0.1/dvwa/login.php")).getUrl().toString()));
 
 	}
 
@@ -87,7 +93,7 @@ public class Fuzzer {
 	}
 
 	// get all inputs from the page
-	public ArrayList<HtmlInput> getInputs(HtmlPage page){
+	public static ArrayList<HtmlInput> getInputs(HtmlPage page){
 		@SuppressWarnings("unchecked")
 		List<HtmlInput> lst = (List<HtmlInput>) page.getByXPath("//input");
 		return (ArrayList<HtmlInput>) lst;
