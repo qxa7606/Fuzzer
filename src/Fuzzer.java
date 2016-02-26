@@ -54,14 +54,19 @@ public class Fuzzer {
                         links = Fuzzer.linkDiscovery(test_URL);
                         System.out.println();
                         System.out.println("Links on Page: ");
-                        System.out.println(links.toString());
+                        for(URL l : links){
+                            System.out.println(l.toString());
+                        }
                         
                         //Guess Urls
                         System.out.println();
                         ArrayList<String> guessed = new ArrayList();
                         guessed = Fuzzer.guessURL(test_URL);
                         System.out.println("Guessed URLs");
-                        System.out.println(guessed);
+                        for(String g : guessed){
+                            System.out.println(g);
+                        }
+                        //System.out.println(guessed);
                         
                         //Get cookies
                         System.out.println();
@@ -69,6 +74,7 @@ public class Fuzzer {
                         Fuzzer.getCookies(test_URL);
                         
                         //Parse URL
+                        
                         
                          System.out.println();
                          System.out.println();
@@ -96,6 +102,9 @@ public class Fuzzer {
                             "    --slow=500             Number of milliseconds considered when a response is considered \"slow\". Default is 500 milliseconds\n" +
                             "\n");
                                                 }
+                    if(test.equals("test")){
+                        System.out.println("Not yet Implemented");
+                    }
 		}
 		
                 else if (args.length == 2){
