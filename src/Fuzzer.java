@@ -42,7 +42,7 @@ public class Fuzzer {
                     if(test.equals("discover")){
                         System.out.println("Discovering...");
                         WebClient wb = new WebClient();
-                        URL test_URL = new URL("https://www.google.com/");
+                        URL test_URL = new URL("https://www.rit.edu/search/?q=hello");
                         /*HtmlPage pg = loginDvwa(test_URL);
                         ArrayList<HtmlInput> arr = getInputs(pg);
                         for (HtmlInput in : arr){
@@ -59,6 +59,7 @@ public class Fuzzer {
                         }
                         
                         //Guess Urls
+       
                         System.out.println();
                         ArrayList<String> guessed = new ArrayList();
                         guessed = Fuzzer.guessURL(test_URL);
@@ -241,7 +242,7 @@ public class Fuzzer {
 					searchinfo = searchinfo + urlSegment.charAt(x);
 				}
 				if(urlSegment.charAt(x) == '='){
-					state = true;
+					break;
 				}
 			}
 		}
@@ -250,7 +251,7 @@ public class Fuzzer {
 	
 	public static URL RebuildUrl(ArrayList<String> ArrayStrURL){
 		URL site = null;
-		String url = "https://www.";
+		String url = "https://";
 		for(int x = 0; x < ArrayStrURL.size(); x++){
 			url = url + ArrayStrURL.get(x);
 		}
@@ -273,6 +274,24 @@ public class Fuzzer {
             String extensions[] = {".jsp", ".php", ".html", "js"};
             
             for(String word :words){
+            	ArrayList<String> ParsedUrl = UrlParse(url);
+                if(urlSearchAlteration(ParsedUrl.get(ParsedUrl.size() - 1)) != ""){
+                	String extension = urlSearchAlteration(ParsedUrl.get(ParsedUrl.size() - 1));
+                	ParsedUrl.set((ParsedUrl.size() - 1), extension);
+                	ParsedUrl.add(word);
+                	URL newUrl = RebuildUrl(ParsedUrl);
+                	try{
+                        HttpURLConnection conn = (HttpURLConnection) newUrl.openConnection(); // open connection trying 
+                        int responseCode = conn.getResponseCode();
+                        if(responseCode != 404){
+                            goodURLs.add(newUrl.toString());
+                        }
+                    }
+                    //catch any exceptions
+                    catch(Exception except){
+                            except.printStackTrace();
+                            }
+                }
                 for(String e : extensions){
                     new_url = Url;  //set url equal to passed in url
                     //new_url += "/"; // add / at the end of the url
