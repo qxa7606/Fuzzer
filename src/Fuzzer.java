@@ -20,13 +20,17 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
 import com.gargoylesoftware.htmlunit.util.Cookie;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 
 
 import java.net.HttpURLConnection;
+import java.util.concurrent.TimeUnit;
 
 
 public class Fuzzer {
+     public static final Double NANO_TO_MILLIS = 1000000.0;
 	String mainURL;
 	private ArrayList<Webpage> pages = new ArrayList<Webpage>();
 	private ArrayList<String> cookies = new ArrayList<String>();
@@ -519,5 +523,38 @@ public class Fuzzer {
             	System.out.println("\tCookie Name: " + c.getName());
             }
         }
+		        private static Boolean checkResposeTime(URL url, String s){
+            boolean check = false;
+            try {
+                long nanoStart = System.nanoTime();
+                long milliStart = System.currentTimeMillis(); 
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                while (in.readLine() != null) {
+                    in.close();
+                }
+                long nanoEnd = System.nanoTime();
+                long milliEnd = System.currentTimeMillis();
+                long nanoTime = nanoEnd - nanoStart;
+                long milliTime = milliEnd - milliStart;
+                Long l = Long.valueOf(s);
+                TimeUnit.SECONDS.toMillis(l);
+                if( milliTime < l){
+                    check = true;
+                }
+            } catch (IOException ex) {
+      
+            }
+            
+            return check;
+        }
+        
+        private static String convert(long nanoTime, long milliTime)
+    {
+        // convert nanoseconds to milliseconds and display both times with three digits of precision (microsecond)
+        String formatted = String.format("%,.3f", nanoTime / NANO_TO_MILLIS);
+        String milli = String.format("%,.3f", milliTime / 1.0 );
+        return formatted;
+    }
 }
 
