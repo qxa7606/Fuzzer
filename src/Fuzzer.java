@@ -327,4 +327,19 @@ public class Fuzzer {
             	System.out.println("\tCookie Name: " + c.getName());
             }
         }
+        
+        public static String responseCode(URL url){
+            String response = "";
+            try{
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection(); // open connection trying  
+                int responseCode = conn.getResponseCode();
+                if(responseCode != 200){
+                    response = "An error has occured with loading the page.";
+                }
+            }
+            catch(Exception except){
+                        except.printStackTrace();
+                        }
+            return response;
+    }
 }
