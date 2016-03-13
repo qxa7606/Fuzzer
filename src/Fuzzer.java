@@ -1,13 +1,17 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.logging.Level;
 
 import com.gargoylesoftware.htmlunit.CookieManager;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
@@ -17,10 +21,229 @@ import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 
+
+
 import java.net.HttpURLConnection;
 
 
 public class Fuzzer {
+	String mainURL;
+	private ArrayList<Webpage> pages = new ArrayList<Webpage>();
+	private ArrayList<String> cookies = new ArrayList<String>();
+	private ArrayList<String> commonWords = new ArrayList<String>();
+    private ArrayList<String> sensitiveData = new ArrayList<String>();
+    private ArrayList<String> vectorsList = new ArrayList<String>();
+	
+    private CookieManager cm;
+    private static TimedWebClient client;
+	private long slowValue = 500;
+    private boolean random = false;
+    
+    public Fuzzer(){
+    	client = new TimedWebClient(500);
+    }
+    
+	public ArrayList<String> loadCommonWordsFile(String fileName){
+		Scanner input;
+		try {
+			input = new Scanner(new File(fileName));
+			while (input.hasNext()) {
+				String s = input.nextLine();
+                commonWords.add(s + ".php");
+                commonWords.add(s + ".jsp");
+                commonWords.add(s);
+			}
+		} catch (FileNotFoundException e) {
+			System.err.println("Common words file error: " + e.getMessage());
+		}
+		return commonWords;
+	}
+
+    public ArrayList<String> loadSensitiveDataFile(String fileName){
+        Scanner input;
+        try {
+            input = new Scanner(new File(fileName));
+            while (input.hasNext()) {
+                String s = input.nextLine();
+                sensitiveData.add(s);
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("Sensitive Data file error: " + e.getMessage());
+        }
+        return sensitiveData;
+    }
+
+    public ArrayList<String> loadVectorsFile(String fileName){
+        Scanner input;
+        try {
+            input = new Scanner(new File(fileName));
+            while (input.hasNext()) {
+                String s = input.nextLine();
+                vectorsList.add(s);
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("Vectors file error: " + e.getMessage());
+        }
+        return vectorsList;
+    }
+	
+	public void loginDVWA() {
+        HtmlPage page = null;
+        HtmlForm form = null;
+
+            try {
+            page = client.getPage("http://127.0.0.1/dvwa/login.php");
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+            //form = page.getForms().get(0);
+            form = page.getFirstByXPath("/html/body/div/form");
+            form.getInputByName("username").setValueAttribute("admin");
+            form.getInputByName("password").setValueAttribute("password");
+            try{
+                page = form.getInputByName("Login").click();
+                mainURL = "http://127.0.0.1/dvwa";
+            } catch (Exception e){
+                System.out.println("Error logging in: " + e.getMessage());
+            }	
+    }
+	
+    public static List<String> getCookies(String s) throws FailingHttpStatusCodeException, IOException{
+    	//TimedWebClient cl = new TimedWebClient(slowValue);
+    	CookieManager mg = client.getCookieManager();
+    	mg.setCookiesEnabled(true);
+    	//cl.getPage(url);
+        Set<Cookie> arr = mg.getCookies();
+        List<String> lst = new ArrayList<String>();
+        for (Cookie c : arr){
+        	lst.add(c.getName() +": " + c.getPath());
+        }
+        return lst;
+    }
+	
+	public void SensitiveDataLeak(Webpage page, HtmlPage curr){
+		for (String st: sensitiveData){
+			if (curr.asXml().contains(st) && !page.getSensitiveData().contains(st)){
+				page.getSensitiveData().add(st);
+			}
+		}
+		
+	}
+	
+	public Webpage parseURL(String url){
+		Webpage page = null;
+		try {
+			URL ur = new URL(url);
+			page = new Webpage(url);
+			if (pages.contains(page)){
+				for (Webpage pg : pages){
+					if (pg.equals(page)){
+						page = pg;
+						break;
+					}
+				}
+			} else{
+				pages.add(page);
+			}
+		if (ur.getQuery() != null) {
+			for (String query: ur.getQuery().split("&")) {
+				String input = query.split("=")[0];
+				if (!page.getInputs().contains(input)) {
+					page.getInputs().add(input);
+				}
+			}
+		}
+		} catch (Exception e){
+			System.err.println(e.getMessage());
+		}
+	return page;
+	}
+	
+	public void discoverLinks(String url, Webpage page){
+		try{
+			HtmlPage html = client.getPage(url);
+            SensitiveDataLeak(page, html);
+			List<HtmlAnchor> links = html.getAnchors();
+			for (HtmlAnchor link: links){
+				URL url1 = new URL(this.mainURL + "/" + link.getHrefAttribute());
+				if (!pages.contains(new Webpage(url1.getPath()))) {
+					Webpage page1 = parseURL(url1.toString());
+					discoverLinks(url1.toString(), page1);
+				}
+				else {
+					parseURL(url1.toString());
+				}
+			}
+		} catch (Exception e){
+			System.err.println("Invalid link: " + e.getMessage());
+		}
+	}
+	
+	public void discoverPages(){
+		//get links via recursion
+		discoverLinks(mainURL, parseURL(mainURL));
+		//initial page guessing
+        for(String word: commonWords){
+            try{
+                HtmlPage html = client.getPage(mainURL + "/" + word);
+                System.out.println("DISCOVER - Valid URL guessed: " + mainURL + "/" + word);
+                Webpage p = parseURL(mainURL + "/" + word);
+                SensitiveDataLeak(p, html);
+            } catch (Exception e) {
+                System.err.println("Guessed url couldn't be reached " + mainURL + "/" + word);
+            } 
+        }
+	}
+	
+	public void discoverForms(){
+		for (Webpage p: pages){
+			try{
+				HtmlPage page = client.getPage(p.getUrl());
+				List<HtmlForm> forms = page.getForms();
+				for (HtmlForm form: forms){
+					p.getForms().add(form);
+				}
+				SensitiveDataLeak(p, page);
+			} catch (Exception e){
+				System.err.println("Problem in discovering forms: " + e.getMessage());
+			}
+		}
+	}
+	
+	public void print(){
+		System.out.println("\nValid pages discovered: " + pages.size());
+		for(Webpage p: pages){
+			System.out.println("url: " + p.getUrl());
+			System.out.println("\tURL Inputs: " + p.getInputs().size());
+			for(String url: p.getInputs()){
+				System.out.println("\t\turl: " + url);
+			}
+			System.out.println("\tForm Inputs: " + p.getForms().size());
+			for(HtmlForm form: p.getForms()){
+				System.out.println("\t\tform: " + form);
+			}
+            System.out.println("\tSensitive data leaked: " + p.getSensitiveData().size());
+            for (String data : p.getSensitiveData()) {
+                System.out.println("\t\t" + data);
+            }
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	//////////////////////////////////////////////////////////////////
+	
+	
+	
+/**	
+	
 	public static void main(String[] args) throws Exception{
 		
 		//String[] extensions = {"php","html","jsp"};
@@ -71,13 +294,13 @@ public class Fuzzer {
         }
         else if (args.length == 3 && args[0].equals("discover") && args[2].contains("custom")){
         	URL url = new URL(args[1]);
-        	HtmlPage pg1 = loginDvwa(url);
-        	url = pg1.getUrl();
+        	//HtmlPage pg1 = loginDvwa(url);
+        	//url = pg1.getUrl();
         	//linkDiscovery(url);
         	System.out.println();
         	System.out.println();
-        	//***ParseURL goes below this line***//
-        	getInputs(pg1);
+        	
+        	//getInputs(pg1);
         	System.out.println();
         	System.out.println();
         	getCookies(url);
@@ -103,51 +326,24 @@ public class Fuzzer {
         	System.out.println();
         	System.out.println();
         	System.out.println("DVWA MAIN PAGE INFORMATION");
-        	HtmlPage pg1 = loginDvwa(url);
-        	url = pg1.getUrl();
+        	//HtmlPage pg1 = loginDvwa();
+        	//url = pg1.getUrl();
         	//linkDiscovery(url);
         	System.out.println();
         	System.out.println();
         	guessURL(url, args[3].substring(args[3].lastIndexOf('=')+1, args[3].length()));
         	System.out.println();        	
         	System.out.println();
-        	//***ParseURL goes below this line***//
-        	getInputs(pg1);
+        	
+        	//getInputs(pg1);
         	System.out.println();
         	System.out.println();
         	getCookies(url);
         }
 	}
 
-	// custom login to loginDvwa
-	public static final HtmlPage loginDvwa(URL url) throws Exception{
-		WebClient client = new WebClient();
-        client.getCookieManager().setCookiesEnabled(true);
-       	final HtmlPage page = client.getPage(url);
-       	@SuppressWarnings("unchecked")
-		final ArrayList<HtmlForm> forms = (ArrayList<HtmlForm>) page.getByXPath("//form");
-       	HtmlForm form = forms.get(0);
-        final HtmlTextInput textField =  form.getInputByName("username");
-        final HtmlPasswordInput pwd =  form.getInputByName("password");  
-        textField.setValueAttribute("admin");
-        pwd.setValueAttribute("password");
-        System.out.println("Logged in");
-        final HtmlPage pg = (HtmlPage) form.getInputByName("Login").click();
-        
-    	HtmlPage ppg = client.getPage(pg.getUrl());
-    	
-		List<HtmlAnchor> lst = ppg.getAnchors();
-		for (HtmlAnchor an : lst){
-			System.out.println(an.getHrefAttribute());
-		}
-    	
-        return pg;    
-	}
-	
-	
-	public static HtmlPage loginBodgeit(URL url){
-		return null;
-	}
+**/
+
 	
 	// all urls you can reach from the initial page
 	public static void linkDiscoveryPage(HtmlPage page) throws FailingHttpStatusCodeException, IOException{
