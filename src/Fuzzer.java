@@ -1,38 +1,29 @@
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.CookieManager;
+import java.net.CookieHandler;
+import java.net.CookiePolicy;
+import java.net.CookieStore;
+import java.net.HttpCookie;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import com.gargoylesoftware.htmlunit.html.*;
-import com.gargoylesoftware.htmlunit.CookieManager;
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.DomNode;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
-import com.gargoylesoftware.htmlunit.html.HtmlFileInput;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlHiddenInput;
-import com.gargoylesoftware.htmlunit.html.HtmlImageInput;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
-import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput;
-import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
+import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.util.Cookie;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
-import java.net.HttpURLConnection;
-import java.util.concurrent.TimeUnit;
-import java.util.Random;
 
 public class Fuzzer {
 
@@ -47,58 +38,26 @@ public class Fuzzer {
 
     private CookieManager cm;
     private static TimedWebClient client;
-    private long slowValue = 500;
+    private static long slowValue = 500;
     private Random random;
+    private boolean status;
 
-    public Fuzzer(String v_File) {
-        client = new TimedWebClient(500);
-        vectorsList = loadVectorsFile(v_File);
-    }
+    public Fuzzer(String commonWordsFile, String vectorsFile, String sensitiveDataFile, boolean status, long time){
+		pages = new ArrayList<Webpage>();
+		cookies = new ArrayList<String>();
+		commonWords = loadCommonWordsFile(commonWordsFile);
+        sensitiveData = loadSensitiveDataFile(sensitiveDataFile);
+        vectorsList = loadVectorsFile(vectorsFile);
+        this.status = status;
+		cm = new CookieManager();
+		cm.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+	    CookieHandler.setDefault(cm);
+		client = new TimedWebClient(time);
+        random = new Random();
+        java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF);
+	}
 
-    public ArrayList<String> loadCommonWordsFile(String fileName) {
-        Scanner input;
-        try {
-            input = new Scanner(new File(fileName));
-            while (input.hasNext()) {
-                String s = input.nextLine();
-                commonWords.add(s + ".php");
-                commonWords.add(s + ".jsp");
-                commonWords.add(s);
-            }
-        } catch (FileNotFoundException e) {
-            System.err.println("Common words file error: " + e.getMessage());
-        }
-        return commonWords;
-    }
-
-    public ArrayList<String> loadSensitiveDataFile(String fileName) {
-        Scanner input;
-        try {
-            input = new Scanner(new File(fileName));
-            while (input.hasNext()) {
-                String s = input.nextLine();
-                sensitiveData.add(s);
-            }
-        } catch (FileNotFoundException e) {
-            System.err.println("Sensitive Data file error: " + e.getMessage());
-        }
-        return sensitiveData;
-    }
-
-    public ArrayList<String> loadVectorsFile(String fileName) {
-        Scanner input;
-        try {
-            input = new Scanner(new File(fileName));
-            while (input.hasNext()) {
-                String s = input.nextLine();
-                vectorsList.add(s);
-            }
-        } catch (FileNotFoundException e) {
-            System.err.println("Vectors file error: " + e.getMessage());
-        }
-        return vectorsList;
-    }
-
+   
     public void loginDVWA() {
         HtmlPage page = null;
         HtmlForm form = null;
@@ -121,8 +80,8 @@ public class Fuzzer {
     }
 
     public static List<String> getCookies(String s) throws FailingHttpStatusCodeException, IOException {
-        //TimedWebClient cl = new TimedWebClient(slowValue);
-        CookieManager mg = client.getCookieManager();
+       // TimedWebClient cl = new TimedWebClient(slowValue);
+        com.gargoylesoftware.htmlunit.CookieManager mg = client.getCookieManager();
         mg.setCookiesEnabled(true);
         //cl.getPage(url);
         Set<Cookie> arr = mg.getCookies();
@@ -198,35 +157,6 @@ public class Fuzzer {
         return inputs;
     }
 
-    public Webpage parseURL(String url) {
-        Webpage page = null;
-        try {
-            URL ur = new URL(url);
-            page = new Webpage(url);
-            if (pages.contains(page)) {
-                for (Webpage pg : pages) {
-                    if (pg.equals(page)) {
-                        page = pg;
-                        break;
-                    }
-                }
-            } else {
-                pages.add(page);
-            }
-            if (ur.getQuery() != null) {
-                for (String query : ur.getQuery().split("&")) {
-                    String input = query.split("=")[0];
-                    if (!page.getInputs().contains(input)) {
-                        page.getInputs().add(input);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-        }
-        return page;
-    }
-
     public void discoverLinks(String url, Webpage page) {
         try {
             HtmlPage html = client.getPage(url);
@@ -258,21 +188,6 @@ public class Fuzzer {
                 SensitiveDataLeak(p, html);
             } catch (Exception e) {
                 System.err.println("Guessed url couldn't be reached " + mainURL + "/" + word);
-            }
-        }
-    }
-
-    public void discoverForms() {
-        for (Webpage p : pages) {
-            try {
-                HtmlPage page = client.getPage(p.getUrl());
-                List<HtmlForm> forms = page.getForms();
-                for (HtmlForm form : forms) {
-                    p.getForms().add(form);
-                }
-                SensitiveDataLeak(p, page);
-            } catch (Exception e) {
-                System.err.println("Problem in discovering forms: " + e.getMessage());
             }
         }
     }
@@ -456,7 +371,7 @@ public class Fuzzer {
 
     public static void getCookies(URL url) throws FailingHttpStatusCodeException, IOException {
         WebClient cl = new WebClient();
-        CookieManager mg = cl.getCookieManager();
+        com.gargoylesoftware.htmlunit.CookieManager mg = cl.getCookieManager();
         mg.setCookiesEnabled(true);
         cl.getPage(url);
         Set<Cookie> arr = mg.getCookies();
@@ -588,4 +503,171 @@ public class Fuzzer {
         }
     }
 
+	
+	public ArrayList<String> loadCommonWordsFile(String fileName){
+		Scanner input;
+		try {
+			input = new Scanner(new File(fileName));
+			while (input.hasNext()) {
+				String s = input.nextLine();
+                commonWords.add(s);
+                commonWords.add(s + ".php");
+                commonWords.add(s + ".jsp");
+			}
+		} catch (FileNotFoundException e) {
+			System.err.println("common words file error: " + e.getMessage());
+		}
+		return commonWords;
+	}
+
+    public ArrayList<String> loadSensitiveDataFile(String fileName){
+        Scanner input;
+        try {
+            input = new Scanner(new File(fileName));
+            while (input.hasNext()) {
+                String s = input.nextLine();
+                sensitiveData.add(s);
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("sensitive data file error: " + e.getMessage());
+        }
+        return sensitiveData;
+    }
+
+    public ArrayList<String> loadVectorsFile(String fileName){
+        Scanner input;
+        try {
+            input = new Scanner(new File(fileName));
+            while (input.hasNext()) {
+                String s = input.nextLine();
+                vectorsList.add(s);
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("sensitive data file error: " + e.getMessage());
+        }
+        return vectorsList;
+    }
+	
+	private void discoverForms(){
+		System.out.println("\nDiscovering all forms from discovered pages.");
+		//find all forms from each page discovered
+		for (Webpage p: pages){
+			try{
+				HtmlPage html = client.getPage(this.mainURL + "/" + p.getUrl());
+                checkForBadData(p, html);
+				List<HtmlForm> forms = html.getForms();
+				for (HtmlForm form: forms){
+					p.getForms().add(form);
+				}
+			} catch (FailingHttpStatusCodeException e){
+				System.err.println("DISCOVER - The URL guessed was invalid: " + e.getMessage());
+			} catch (MalformedURLException e){
+				System.err.println("DISCOVER - The URL guessed violated URL convention: " + e.getMessage());
+			} catch (IOException e){
+				System.err.println("DISCOVER - Error during page guessing: " + e.getMessage());
+			}
+		}
+	}
+	
+	private Webpage parseURL(String url){
+		Webpage page = null;
+		try{
+			URL temp = new URL(url);
+			//if page is already in the list
+			if (pages.contains(new Webpage(temp.getPath()))) {
+				for (Webpage p: pages){
+					if (p.getUrl().equals(temp.getPath())) {
+						page = p;
+						break;
+					}
+				}
+			}
+			else {
+				page = new Webpage(temp.getPath());
+				pages.add(page);
+			}
+			//get query and find fizzed inputs
+			if (temp.getQuery() != null) {
+				for (String query: temp.getQuery().split("&")) {
+					String input = query.split("=")[0];
+					if (!page.getInputs().contains(input)) {
+						page.getInputs().add(input);
+					}
+				}
+			}
+		} catch (MalformedURLException e) {
+			System.err.println("Invalid URL provided: " + e.getMessage());
+		}
+		return page;
+	}
+
+    private List<HtmlInput> parseDOM(DomNode node){
+        List<HtmlInput> inputs = new ArrayList<HtmlInput>();
+
+        for (DomNode n : node.getChildren()) {
+            if( n instanceof HtmlTextInput){
+                inputs.add((HtmlInput) n);
+            }else if(n instanceof HtmlHiddenInput){
+                inputs.add((HtmlInput) n);
+            }else if(n instanceof HtmlFileInput){
+                inputs.add((HtmlInput) n);
+            }else if(n instanceof HtmlPasswordInput){
+                inputs.add((HtmlInput) n);
+            }else if(n instanceof HtmlImageInput){
+                inputs.add((HtmlInput) n);
+            }
+
+            if (n.hasChildNodes()){
+                inputs.addAll(parseDOM(n));
+            }
+        }
+
+        return inputs;
+    }
+
+    private void checkForBadData(Webpage page, HtmlPage content){
+        for(String s: sensitiveData){
+            if(content.asXml().contains(s) && !page.getSensitiveData().contains(s)){
+                page.getSensitiveData().add(s);
+            }
+        }
+    }
+
+    private void testStart(){
+        if(!status){
+            for(Webpage p: pages) {
+                page_tester(p);
+            }
+        } else {
+            for(int i = 0; i < 10; i++){
+                int page = random.nextInt(pages.size());
+                testRandPage(pages.get(page));
+            }
+        }
+    }
+	public void fuzz(String baseUrl, String auth){
+        this.mainURL = baseUrl;
+        URL newURL = null;
+        try {
+			newURL = new URL(baseUrl);
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("Starting discovery process for: " + baseUrl);
+		try {
+			newURL.openConnection();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		loginDVWA();
+		discoverPages();
+		discoverForms();
+        testStart();
+		print();
+        client.closeAllWindows();
+	}
 }
+
+
