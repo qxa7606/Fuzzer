@@ -1,0 +1,2 @@
+use this for the command prompt: java -jar fuzz.jar test http://127.0.0.1/dvwa/login.php common_words=common-Words.txt vectors=vectors.txt sensitive=sensitive-data.txt auth=dvwa
+Make sure to Replace the txt files with your own.
