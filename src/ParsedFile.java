@@ -14,10 +14,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class ParsedFile {
     
-    
+    private ArrayList<String> sens_data = new ArrayList<String>();
     //Parse function: parses a text file and returns an arraylist of those words.
     public ArrayList Parse(String st){
         
@@ -42,5 +43,6 @@ public class ParsedFile {
             }
         return words;
     }
+
     
 }

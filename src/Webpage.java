@@ -48,4 +48,7 @@ public class Webpage {
 			}
 			return false;
 		}		
+                public String Url_to_String(){
+                    return url.toString();
+                }
 }
